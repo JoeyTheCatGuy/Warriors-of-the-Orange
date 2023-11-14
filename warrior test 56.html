@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Penguin Knight and Cat Ninja Warriors Game</title>
+    <style>
+        /* CSS for fading out log messages */
+        .log-message {
+            animation: fadeOut 3s; /* Adjust the duration as needed */
+        }
+
+        @keyframes fadeOut {
+            0% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+
+        /* Add some CSS for styling */
+        body {
+            background-image: url('C:/Coding/Backround11.png'); /* Set the background image path */
+            background-size: cover; /* Cover the entire body with the background */
+            background-repeat: no-repeat; /* Prevent background image repetition */
+            color: white; /* Set text color to white */
+        }
+
+        /* ... (existing styles) */
+
+        /* Style for buttons */
+        button {
+            background-color: rgba(0, 123, 255, 0.7); /* Semi-transparent blue background */
+            color: white; /* Set button text color to white */
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        /* Add more button styles as needed */
+
+        /* Style for the less noticeable "Find Golden Orange" button */
+        #golden-orange-button {
+            opacity: 0.5;
+            font-size: 12px;
+        }
+
+        #shop {
+            display: none;
+        }
+
+        /* Add a CSS animation for fading out log messages */
+        @keyframes fadeOut {
+            0% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* Apply the fadeOut animation to log messages */
+        .fadeOut {
+            animation: fadeOut 3s ease-in-out;
+        }
+
+        /* Add styles for new buttons */
+        .action-button {
+            background-color: rgba(0, 123, 255, 0.7);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+
+        #complete-quest-button {
+            opacity: 0.5;
+            font-size: 12px;
+  
+        }
+
+    </style>
+</head>
+<body>
+<h1>Welcome to the Penguin Knight and Cat Ninja Warriors Game!</h1>
+<img id="cat-image" src="C:/Coding/CatModel.png">
+<img src="C:/Coding/Backroun11.png">
+
+<form id="game-form">
+    <label for="player-name">Enter your warrior's name:</label>
+    <input type="text" id="player-name" required>
+    <button type="button" onclick="startGame()">Start Game</button>
+    <!-- New button for completing the quest -->
+    <button id="complete-quest-button" class="action-button" onclick="completeQuest()">Complete Quest</button>
+</form>
+
+<div id="game-area" style="display: none;">
+    <div id="game-log"></div>
+    <div id="health-bar">
+        <div id="current-health">Health: 100%</div>
+    </div>
+    <button onclick="playerAttack()">Attack</button>
+    <button onclick="runAway()">Run</button>
+    <button onclick="openShop()">Open Shop</button>
+    <button onclick="openInventory()">Open Inventory</button>
+    <button onclick="startQuest()">Start Quest</button>
+</div>
+
+<div id="shop" style="display: none;">
+    <h2>Shop</h2>
+    <p>Gold: <span id="gold">0</span></p>
+    <!-- Swords -->
+    <button onclick="buySword('Iron Sword', 25)">Buy Iron Sword (25 Gold)</button>
+    <button onclick="buySword('Diamond Sword', 50)">Buy Diamond Sword (50 Gold)</button>
+    <!-- Healing Items -->
+    <button onclick="buyItem('Health Potion', 10)">Buy Health Potion (10 Gold)</button>
+    <button onclick="buyItem('Mana Elixir', 20)">Buy Mana Elixir (20 Gold)</button>
+    <button onclick="closeShop()">Close Shop</button>
+</div>
+
+<div id="inventory" style="display: none;">
+    <h2>Inventory</h2>
+    <p>Health Potions: <span id="health-potions">0</span></p>
+    <button onclick="useHealthPotion()">Use Health Potion</button>
+    <button onclick="closeInventory()">Close Inventory</button>
+</div>
+
+<div id="quest">
+    <h2>Quest</h2>
+    <p>Quest Status: <span id="quest-status">Not Started</span></p>
+    <!-- Less noticeable "Find Golden Orange" button -->
+    <button id="golden-orange-button" onclick="findGoldenOrange()">Find Golden Orange</button>
+</div>
+
+<div id="villagers">
+    <h2>Villagers</h2>
+    <p id="villager-message">Talk to villagers to seek help in your quest.</p>
+    <button onclick="talkToVillager()">Talk to Villager</button>
+</div>
+
+<div id="game-over-bg"></div>
+
+<!-- Add the golden orange image with an onclick event to complete the quest -->
+<img src="C:/Coding/Orange.png" onclick="completeQuest()" style="display: none;" id="golden-orange-img">
+
+<script>
+    // JavaScript code for the game
+    let player;
+    let enemies;
+    let currentEnemy;
+    let gameLog;
+    let gold = 10; // Initialize the player with 10 gold
+    let questStatus = "Not Started";
+    let villagersHelped = 0;
+    let inventory = {
+        "Health Potion": 0,
+        "Mana Elixir": 0
+    };
+
+    function Player(name) {
+        this.name = name;
+        this.level = 1;
+        this.experience = 0;
+        this.health = 100;
+        this.sword = "Wooden Sword";
+
+        this.attack = function () {
+            return Math.floor(Math.random() * 11) + 10; // Random damage between 10 and 20
+        };
+
+        this.takeDamage = function (damage) {
+            this.health -= damage;
+            if (this.health < 0) {
+                this.health = 0;
+            }
+        };
+
+        this.isAlive = function () {
+            return this.health > 0;
+        };
+
+        this.gainExperience = function (experiencePoints) {
+            this.experience += experiencePoints;
+            if (this.experience >= this.level * 100) {
+                this.levelUp();
+            }
+        };
+
+        this.levelUp = function () {
+            this.level++;
+            this.health = 100;
+            this.sword = "Iron Sword"; // Upgrade to Iron Sword
+            logMessage(`${this.name} leveled up to level ${this.level}!`);
+        };
+
+        this.useHealthPotion = function () {
+            if (inventory["Health Potion"] > 0) {
+                const healingAmount = 30; // Adjust the amount of health restored
+                this.health += healingAmount;
+                if (this.health > 100) {
+                    this.health = 100; // Health cannot exceed 100%
+                }
+                inventory["Health Potion"]--;
+                updateHealthBar();
+                updateInventory();
+                logMessage(`${this.name} used a Health Potion and restored ${healingAmount} health.`);
+            } else {
+                logMessage("No Health Potions available.");
+            }
+        };
+    }
+
+    function Enemy(name) {
+        this.name = name;
+        this.health = 50;
+        this.attackPower = 10;
+
+        this.attack = function () {
+            return Math.floor(Math.random() * 11) + this.attackPower - 5; // Random damage between 5 and 15
+        };
+
+        this.takeDamage = function (damage) {
+            this.health -= damage;
+            if (this.health < 0) {
+                this.health = 0;
+            }
+        };
+
+        this.isAlive = function () {
+            return this.health > 0;
+        };
+    }
+
+    function logMessage(message) {
+        gameLog.innerHTML += `<p>${message}</p>`;
+    }
+
+    function startGame() {
+        const playerName = document.getElementById("player-name").value;
+        player = new Player(playerName);
+        enemies = [new Enemy("Penguin"), new Enemy("Knight"), new Enemy("Cat Ninja")];
+        currentEnemy = null;
+        gameLog = document.getElementById("game-log");
+        document.getElementById("game-form").style.display = "none";
+        document.getElementById("game-area").style.display = "block";
+        updateGold(); // Display the initial gold amount
+        updateQuestStatus(); // Display the initial quest status
+        updateVillagerMessage(); // Display the initial villager message
+        updateInventory(); // Display the initial inventory
+        nextBattle();
+    }
+
+    function updateHealthBar() {
+        const currentHealthPercent = (player.health / 100) * 100;
+        document.getElementById("current-health").style.width = `${currentHealthPercent}%`;
+        document.getElementById("current-health").textContent = `Health: ${currentHealthPercent.toFixed(0)}%`;
+    }
+
+    function updateGold() {
+        document.getElementById("gold").textContent = gold;
+    }
+
+    function updateQuestStatus() {
+        document.getElementById("quest-status").textContent = questStatus;
+    }
+
+    function updateInventory() {
+        document.getElementById("health-potions").textContent = inventory["Health Potion"];
+    }
+
+    function updateVillagerMessage() {
+        if (villagersHelped === 3) {
+            document.getElementById("villager-message").textContent = "You've received help from all the villagers.";
+        } else {
+            document.getElementById("villager-message").textContent = "Talk to villagers to seek help in your quest.";
+        }
+    }
+
+    function nextBattle() {
+        if (enemies.length > 0) {
+            currentEnemy = enemies.pop();
+            logMessage(`A wild ${currentEnemy.name} appears!`);
+        } else {
+            logMessage("Congratulations, you have defeated all enemies and won the game!");
+            document.getElementById("game-area").style.display = "none";
+            document.getElementById("game-over-bg").style.display = "block"; // Show the game over screen
+        }
+    }
+
+    function playerAttack() {
+        if (currentEnemy) {
+            // Change the image to "Cat Model Fight"
+            document.getElementById("cat-image").src = "C:/Coding/CatModelFight.png";
+
+            const playerDamage = player.attack();
+            currentEnemy.takeDamage(playerDamage);
+            logMessage(`You attack the ${currentEnemy.name} for ${playerDamage} damage.`);
+
+            if (currentEnemy.isAlive()) {
+                const enemyDamage = currentEnemy.attack();
+                player.takeDamage(enemyDamage);
+                logMessage(`The ${currentEnemy.name} attacks you for ${enemyDamage} damage.`);
+
+                if (player.isAlive()) {
+                    logMessage(`The ${currentEnemy.name} has ${currentEnemy.health} HP left.`);
+                } else {
+                    logMessage("Game Over! You have been defeated.");
+                    gameOver();
+                }
+            } else {
+                // Change the image back to "Cat Model"
+                document.getElementById("cat-image").src = "C:/Coding/CatModel.png";
+
+                logMessage(`You defeated the ${currentEnemy.name}!`);
+                const experienceEarned = 20; // You can adjust the experience points earned
+                player.gainExperience(experienceEarned);
+                logMessage(`You earned ${experienceEarned} experience points.`);
+
+                // Enemies drop random gold
+                const goldDropped = Math.floor(Math.random() * 21) + 10; // Random gold between 10 and 30
+                gold += goldDropped;
+                logMessage(`The ${currentEnemy.name} dropped ${goldDropped} Gold!`);
+
+                if (player.isAlive()) {
+                    updateHealthBar();
+                    updateGold();
+                    nextBattle();
+                } else {
+                    logMessage("Game Over! You have been defeated.");
+                    gameOver();
+                }
+            }
+        }
+    }
+
+    function runAway() {
+        if (currentEnemy) {
+            // Change the image back to "Cat Model"
+            document.getElementById("cat-image").src = "C:/Coding/CatModel.png";
+
+            logMessage("You ran away from the battle.");
+            currentEnemy = null;
+            player.health = 100; // Restore player's health when running away
+            updateHealthBar();
+            nextBattle();
+        }
+    }
+
+    function openShop() {
+        document.getElementById("shop").style.display = "block";
+        document.getElementById("game-area").style.display = "none";
+    }
+
+    function openInventory() {
+        document.getElementById("inventory").style.display = "block";
+        document.getElementById("game-area").style.display = "none";
+    }
+
+    function closeShop() {
+        document.getElementById("shop").style.display = "none";
+        document.getElementById("game-area").style.display = "block";
+    }
+
+    function closeInventory() {
+        document.getElementById("inventory").style.display = "none";
+        document.getElementById("game-area").style.display = "block";
+    }
+
+    function buySword(swordName, cost) {
+        if (gold >= cost) {
+            player.sword = swordName;
+            gold -= cost;
+            logMessage(`You purchased a ${swordName} for ${cost} Gold.`);
+            updateGold();
+        } else {
+            logMessage("Not enough Gold to buy this item.");
+        }
+    }
+
+    function buyItem(itemName, cost) {
+        if (gold >= cost) {
+            gold -= cost;
+            logMessage(`You purchased a ${itemName} for ${cost} Gold.`);
+            inventory[itemName]++; // Add the item to the inventory
+            updateGold();
+            updateInventory();
+        } else {
+            logMessage("Not enough Gold to buy this item.");
+        }
+    }
+
+    function useHealthPotion() {
+        player.useHealthPotion();
+    }
+
+    function startQuest() {
+        if (questStatus === "Not Started") {
+            questStatus = "Started";
+            logMessage("You have started the quest to find the Golden Orange.");
+            updateQuestStatus();
+        } else {
+            logMessage("You have already started the quest.");
+        }
+    }
+
+    function findGoldenOrange() {
+        if (questStatus === "Started") {
+            questStatus = "Completed";
+            logMessage("Congratulations! You found the Golden Orange.");
+            document.getElementById("golden-orange-img").style.display = "block";
+            document.getElementById("golden-orange-button").style.display = "none";
+        } else if (questStatus === "Completed") {
+            logMessage("You've already completed the quest.");
+        } else {
+            logMessage("You need to start the quest first.");
+        }
+    }
+
+    function talkToVillager() {
+        if (villagersHelped < 3) {
+            villagersHelped++;
+            updateVillagerMessage();
+            logMessage("Villager helped.");
+        }
+    }
+
+    function gameOver() {
+        document.getElementById("game-over-bg").style.display = "block";
+    }
+</script>
+</body>
+</html>
